@@ -69,4 +69,6 @@ else
   apply_term &
 fi
 
+bash ~/.config/rofi/scripts/generate-rasi-colors.sh
+
 # apply_qt & # Qt theming is already handled by kde-material-colors
