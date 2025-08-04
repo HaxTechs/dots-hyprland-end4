@@ -6,6 +6,9 @@
 ANIMATION_DIR="$HOME/.config/hypr/animations"
 # Target file for the active animation
 ACTIVE_ANIMATION="$HOME/.config/hypr/active_anim.conf"
+# Rofi theme file
+ROFI_DIR="$HOME/.config/rofi/launchers/styles"
+THEME='simple'
 
 # Check if animation directory exists
 if [[ ! -d "$ANIMATION_DIR" ]]; then
@@ -26,7 +29,7 @@ fi
 MENU=$(basename -a --suffix=.conf "$ANIMATION_DIR"/*.conf)
 
 # Show rofi menu and get selected animation
-SELECTED=$(echo "$MENU" | rofi -dmenu -i -p "Select Animation")
+SELECTED=$(echo "$MENU" | rofi -dmenu -i -p "Select Animation" -theme ${ROFI_DIR}/${THEME}.rasi)
 
 # Exit if no selection made
 if [[ -z "$SELECTED" ]]; then
