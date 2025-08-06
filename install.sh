@@ -59,6 +59,21 @@ set -e
 #####################################################################################
 printf "\e[36m[$0]: 1. Get packages and setup user groups/services\n\e[0m"
 
+if ! command -v sddm >/dev/null 2>&1; then
+  echo "[$0]: SDDM not found. Installing..."
+  v sudo pacman -S --needed --noconfirm sddm
+else 
+  echo "[$0]: SDDM already installed"
+fi 
+
+# Enable sddm as default display manager
+v sudo systemctl enable sddm --now
+
+# TODO: set lunar sddm theme here
+# # v sudo sed -i 's|^Current=.*|Current=lunar-theme|' /etc/sddm.conf
+
+echo "[$0]: SDDM installation and setup complete."
+
 # Issue #363
 case $SKIP_SYSUPDATE in
   true) sleep 0;;
