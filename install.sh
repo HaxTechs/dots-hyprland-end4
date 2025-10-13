@@ -67,7 +67,7 @@ else
 fi 
 
 # Enable sddm as default display manager
-v sudo systemctl enable sddm --now
+v sudo systemctl enable sddm
 
 # TODO: set lunar sddm theme here
 # # v sudo sed -i 's|^Current=.*|Current=lunar-theme|' /etc/sddm.conf
