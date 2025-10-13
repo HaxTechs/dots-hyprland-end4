@@ -12,7 +12,6 @@ import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Quickshell.Io
-import Quickshell.Hyprland
 import qs
 import qs.services
 import qs.modules.common
@@ -27,18 +26,14 @@ ApplicationWindow {
     property bool showNextTime: false
     visible: true
     onClosing: {
-        Quickshell.execDetached([
-            "notify-send", 
-            Translation.tr("Welcome app"), 
-            Translation.tr("Enjoy! You can reopen the welcome app any time with <tt>Super+Shift+Alt+/</tt>. To open the settings app, hit <tt>Super+I</tt>"),
-            "-a", "Shell"
-        ])
-        Qt.quit()
+        Quickshell.execDetached(["notify-send", Translation.tr("Welcome app"), Translation.tr("Enjoy! You can reopen the welcome app any time with <tt>Super+Shift+Alt+/</tt>. To open the settings app, hit <tt>Super+I</tt>"), "-a", "Shell"]);
+        Qt.quit();
     }
     title: Translation.tr("illogical-impulse Welcome")
 
     Component.onCompleted: {
         MaterialThemeLoader.reapplyTheme();
+        Config.readWriteDelay = 0 // Welcome app always only sets one var at a time so delay isn't needed
     }
 
     minimumWidth: 600
@@ -50,7 +45,7 @@ ApplicationWindow {
     Process {
         id: konachanWallProc
         property string status: ""
-        command: ["bash", "-c", Quickshell.shellPath("scripts/colors/random_konachan_wall.sh")]
+        command: ["bash", "-c", Quickshell.shellPath("scripts/colors/random/random_konachan_wall.sh")]
         stdout: SplitParser {
             onRead: data => {
                 console.log(`Konachan wall proc output: ${data}`);
@@ -115,9 +110,14 @@ ApplicationWindow {
                         text: "close"
                         iconSize: 20
                     }
+
+                    StyledToolTip {
+                        text: Translation.tr("Tip: Close a window with Super+Q")
+                    }
                 }
             }
         }
+
         Rectangle {
             // Content container
             color: Appearance.m3colors.m3surfaceContainerLow
@@ -132,80 +132,103 @@ ApplicationWindow {
                 anchors.fill: parent
 
                 ContentSection {
+                    Layout.fillWidth: true
+                    icon: "language"
+                    title: Translation.tr("Language")
+
+                    ConfigSelectionArray {
+                        id: languageSelector
+                        currentValue: Config.options.language.ui
+                        onSelected: newValue => {
+                            Config.options.language.ui = newValue;
+                        }
+                        options: [
+                            {
+                                displayName: Translation.tr("Auto (System)"),
+                                value: "auto"
+                            },
+                            ...Translation.availableLanguages.map(lang => {
+                                return {
+                                    displayName: lang.replace('_', '-'),
+                                    value: lang
+                                };
+                            })]
+                    }
+                }
+
+                ContentSection {
+                    icon: "screenshot_monitor"
                     title: Translation.tr("Bar")
 
                     ConfigRow {
                         ContentSubsection {
-                            title: "Corner style"
+                            title: Translation.tr("Bar position")
+                            ConfigSelectionArray {
+                                currentValue: (Config.options.bar.bottom ? 1 : 0) | (Config.options.bar.vertical ? 2 : 0)
+                                onSelected: newValue => {
+                                    Config.options.bar.bottom = (newValue & 1) !== 0;
+                                    Config.options.bar.vertical = (newValue & 2) !== 0;
+                                }
+                                options: [
+                                    {
+                                        displayName: Translation.tr("Top"),
+                                        icon: "arrow_upward",
+                                        value: 0 // bottom: false, vertical: false
+                                    },
+                                    {
+                                        displayName: Translation.tr("Left"),
+                                        icon: "arrow_back",
+                                        value: 2 // bottom: false, vertical: true
+                                    },
+                                    {
+                                        displayName: Translation.tr("Bottom"),
+                                        icon: "arrow_downward",
+                                        value: 1 // bottom: true, vertical: false
+                                    },
+                                    {
+                                        displayName: Translation.tr("Right"),
+                                        icon: "arrow_forward",
+                                        value: 3 // bottom: true, vertical: true
+                                    }
+                                ]
+                            }
+                        }
+                        ContentSubsection {
+                            title: Translation.tr("Bar style")
 
                             ConfigSelectionArray {
                                 currentValue: Config.options.bar.cornerStyle
-                                configOptionName: "bar.cornerStyle"
                                 onSelected: newValue => {
                                     Config.options.bar.cornerStyle = newValue; // Update local copy
                                 }
                                 options: [
                                     {
                                         displayName: Translation.tr("Hug"),
+                                        icon: "line_curve",
                                         value: 0
                                     },
                                     {
                                         displayName: Translation.tr("Float"),
+                                        icon: "page_header",
                                         value: 1
                                     },
                                     {
-                                        displayName: Translation.tr("Plain rectangle"),
+                                        displayName: Translation.tr("Rect"),
+                                        icon: "toolbar",
                                         value: 2
                                     }
                                 ]
-                            }
-                        }
-
-                        ContentSubsection {
-                            title: "Bar layout"
-                            ConfigSelectionArray {
-                                currentValue: Config.options.bar.vertical
-                                configOptionName: "bar.vertical"
-                                onSelected: newValue => {
-                                    Config.options.bar.vertical = newValue;
-                                }
-                                options: [
-                                    {
-                                        displayName: Translation.tr("Horizontal"),
-                                        value: false
-                                    },
-                                    {
-                                        displayName: Translation.tr("Vertical"),
-                                        value: true
-                                    },
-                                ]
-                            }
-                        }
-                    }
-
-                    ConfigRow {
-                        ConfigSwitch {
-                            text: Translation.tr("Automatically hide")
-                            checked: Config.options.bar.autoHide.enable
-                            onCheckedChanged: {
-                                Config.options.bar.autoHide.enable = checked;
-                            }
-                        }
-                        ConfigSwitch {
-                            text: Translation.tr("Place at the bottom/right")
-                            checked: Config.options.bar.bottom
-                            onCheckedChanged: {
-                                Config.options.bar.bottom = checked;
                             }
                         }
                     }
                 }
 
                 ContentSection {
+                    icon: "format_paint"
                     title: Translation.tr("Style & wallpaper")
 
                     ButtonGroup {
-                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignHCenter
                         LightDarkPreferenceButton {
                             dark: false
                         }
@@ -218,22 +241,23 @@ ApplicationWindow {
                         Layout.alignment: Qt.AlignHCenter
                         RippleButtonWithIcon {
                             id: rndWallBtn
+                            visible: Config.options.policies.weeb === 1
                             Layout.alignment: Qt.AlignHCenter
                             buttonRadius: Appearance.rounding.small
-                            materialIcon: "wallpaper"
+                            materialIcon: "ifl"
                             mainText: konachanWallProc.running ? Translation.tr("Be patient...") : Translation.tr("Random: Konachan")
                             onClicked: {
                                 console.log(konachanWallProc.command.join(" "));
                                 konachanWallProc.running = true;
                             }
                             StyledToolTip {
-                                content: Translation.tr("Random SFW Anime wallpaper from Konachan\nImage is saved to ~/Pictures/Wallpapers")
+                                text: Translation.tr("Random SFW Anime wallpaper from Konachan\nImage is saved to ~/Pictures/Wallpapers")
                             }
                         }
                         RippleButtonWithIcon {
                             materialIcon: "wallpaper"
                             StyledToolTip {
-                                content: Translation.tr("Pick wallpaper image on your system")
+                                text: Translation.tr("Pick wallpaper image on your system")
                             }
                             onClicked: {
                                 Quickshell.execDetached([`${Directories.wallpaperSwitchScriptPath}`]);
@@ -267,15 +291,14 @@ ApplicationWindow {
                         }
                     }
 
-                    StyledText {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: Translation.tr("Change any time later with /dark, /light, /img in the launcher")
-                        font.pixelSize: Appearance.font.pixelSize.smaller
-                        color: Appearance.colors.colSubtext
+                    NoticeBox {
+                        Layout.fillWidth: true
+                        text: Translation.tr("Change any time later with /dark, /light, /wallpaper in the launcher\nIf the shell's colors aren't changing:\n    1. Open the right sidebar with Super+N\n    2. Click \"Reload Hyprland & Quickshell\" in the top-right corner")
                     }
                 }
 
                 ContentSection {
+                    icon: "rule"
                     title: Translation.tr("Policies")
 
                     ConfigRow {
@@ -286,21 +309,23 @@ ApplicationWindow {
 
                             ConfigSelectionArray {
                                 currentValue: Config.options.policies.weeb
-                                configOptionName: "policies.weeb"
                                 onSelected: newValue => {
                                     Config.options.policies.weeb = newValue;
                                 }
                                 options: [
                                     {
                                         displayName: Translation.tr("No"),
+                                        icon: "close",
                                         value: 0
                                     },
                                     {
                                         displayName: Translation.tr("Yes"),
+                                        icon: "check",
                                         value: 1
                                     },
                                     {
                                         displayName: Translation.tr("Closet"),
+                                        icon: "ev_shadow",
                                         value: 2
                                     }
                                 ]
@@ -312,21 +337,23 @@ ApplicationWindow {
 
                             ConfigSelectionArray {
                                 currentValue: Config.options.policies.ai
-                                configOptionName: "policies.ai"
                                 onSelected: newValue => {
                                     Config.options.policies.ai = newValue;
                                 }
                                 options: [
                                     {
                                         displayName: Translation.tr("No"),
+                                        icon: "close",
                                         value: 0
                                     },
                                     {
                                         displayName: Translation.tr("Yes"),
+                                        icon: "check",
                                         value: 1
                                     },
                                     {
                                         displayName: Translation.tr("Local only"),
+                                        icon: "sync_saved_locally",
                                         value: 2
                                     }
                                 ]
@@ -336,6 +363,7 @@ ApplicationWindow {
                 }
 
                 ContentSection {
+                    icon: "info"
                     title: Translation.tr("Info")
 
                     Flow {
@@ -390,6 +418,7 @@ ApplicationWindow {
                 }
 
                 ContentSection {
+                    icon: "monitoring"
                     title: Translation.tr("Useless buttons")
 
                     Flow {

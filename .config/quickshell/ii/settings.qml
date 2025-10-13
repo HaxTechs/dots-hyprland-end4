@@ -24,13 +24,25 @@ ApplicationWindow {
     property bool showNextTime: false
     property var pages: [
         {
-            name: Translation.tr("Style"),
-            icon: "palette",
-            component: "modules/settings/StyleConfig.qml"
+            name: Translation.tr("Quick"),
+            icon: "instant_mix",
+            component: "modules/settings/QuickConfig.qml"
+        },
+        {
+            name: Translation.tr("General"),
+            icon: "browse",
+            iconRotation: 180,
+            component: "modules/settings/GeneralConfig.qml"
+        },
+        {
+            name: Translation.tr("Bar"),
+            icon: "toast",
+            iconRotation: 180,
+            component: "modules/settings/BarConfig.qml"
         },
         {
             name: Translation.tr("Interface"),
-            icon: "cards",
+            icon: "bottom_app_bar",
             component: "modules/settings/InterfaceConfig.qml"
         },
         {
@@ -57,10 +69,11 @@ ApplicationWindow {
 
     Component.onCompleted: {
         MaterialThemeLoader.reapplyTheme()
+        Config.readWriteDelay = 0 // Settings app always only sets one var at a time so delay isn't needed
     }
 
-    minimumWidth: 600
-    minimumHeight: 400
+    minimumWidth: 750
+    minimumHeight: 500
     width: 1100
     height: 750
     color: Appearance.m3colors.m3background
@@ -160,12 +173,12 @@ ApplicationWindow {
                         iconText: "edit"
                         buttonText: Translation.tr("Config file")
                         expanded: navRail.expanded
-                        onClicked: {
+                        downAction: () => {
                             Qt.openUrlExternally(`${Directories.config}/illogical-impulse/config.json`);
                         }
 
                         StyledToolTip {
-                            content: Translation.tr("Open the shell config file.\nIf the button doesn't work or doesn't open in your favorite editor,\nyou can manually open ~/.config/illogical-impulse/config.json")
+                            text: Translation.tr("Open the shell config file.\nIf the button doesn't work or doesn't open in your favorite editor,\nyou can manually open ~/.config/illogical-impulse/config.json")
                         }
                     }
 
@@ -178,9 +191,10 @@ ApplicationWindow {
                                 required property var index
                                 required property var modelData
                                 toggled: root.currentPage === index
-                                onClicked: root.currentPage = index;
+                                onPressed: root.currentPage = index;
                                 expanded: navRail.expanded
                                 buttonIcon: modelData.icon
+                                buttonIconRotation: modelData.iconRotation || 0
                                 buttonText: modelData.name
                                 showToggledHighlight: false
                             }
@@ -202,14 +216,17 @@ ApplicationWindow {
                     id: pageLoader
                     anchors.fill: parent
                     opacity: 1.0
-                    source: root.pages[0].component
+
+                    active: Config.ready
+                    Component.onCompleted: {
+                        source = root.pages[0].component
+                    }
+
                     Connections {
                         target: root
                         function onCurrentPageChanged() {
-                            if (pageLoader.sourceComponent !== root.pages[root.currentPage].component) {
-                                switchAnim.complete();
-                                switchAnim.start();
-                            }
+                            switchAnim.complete();
+                            switchAnim.start();
                         }
                     }
 
@@ -225,19 +242,36 @@ ApplicationWindow {
                             easing.type: Appearance.animation.elementMoveExit.type
                             easing.bezierCurve: Appearance.animationCurves.emphasizedFirstHalf
                         }
-                        PropertyAction {
-                            target: pageLoader
-                            property: "source"
-                            value: root.pages[root.currentPage].component
+                        ParallelAnimation {
+                            PropertyAction {
+                                target: pageLoader
+                                property: "source"
+                                value: root.pages[root.currentPage].component
+                            }
+                            PropertyAction {
+                                target: pageLoader
+                                property: "anchors.topMargin"
+                                value: 20
+                            }
                         }
-                        NumberAnimation {
-                            target: pageLoader
-                            properties: "opacity"
-                            from: 0
-                            to: 1
-                            duration: 200
-                            easing.type: Appearance.animation.elementMoveEnter.type
-                            easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
+                        ParallelAnimation {
+                            NumberAnimation {
+                                target: pageLoader
+                                properties: "opacity"
+                                from: 0
+                                to: 1
+                                duration: 200
+                                easing.type: Appearance.animation.elementMoveEnter.type
+                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
+                            }
+                            NumberAnimation {
+                                target: pageLoader
+                                properties: "anchors.topMargin"
+                                to: 0
+                                duration: 200
+                                easing.type: Appearance.animation.elementMoveEnter.type
+                                easing.bezierCurve: Appearance.animationCurves.emphasizedLastHalf
+                            }
                         }
                     }
                 }

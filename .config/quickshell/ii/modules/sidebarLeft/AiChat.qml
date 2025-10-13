@@ -36,6 +36,9 @@ Item {
                 event.accepted = true
             }
         }
+        if ((event.modifiers & Qt.ControlModifier) && (event.modifiers & Qt.ShiftModifier) && event.key === Qt.Key_O) {
+            Ai.clearMessages();
+        }
     }
 
     property var allCommands: [
@@ -209,6 +212,9 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         else {
             Ai.sendUserMessage(inputText);
         }
+        
+        // Always scroll to bottom when user sends a message
+        messageListView.positionViewAtEnd()
     }
 
     Process {
@@ -219,7 +225,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         function handleEntry(entry: string) {
             imageDecodeFileName = parseInt(entry.match(/^(\d+)\t/)[1])
             decodeImageAndAttachProc.exec(["bash", "-c", 
-                `[ -f ${imageDecodeFilePath} ] || echo '${StringUtils.shellSingleQuoteEscape(entry)}' | cliphist decode > '${imageDecodeFilePath}'`
+                `[ -f ${imageDecodeFilePath} ] || echo '${StringUtils.shellSingleQuoteEscape(entry)}' | ${Cliphist.cliphistBinary} decode > '${imageDecodeFilePath}'`
             ])
         }
         onExited: (exitCode, exitStatus) => {
@@ -257,7 +263,7 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         }
 
         StyledToolTip {
-            content: statusItem.description
+            text: statusItem.description
             extraVisibleCondition: false
             alternativeVisibleCondition: statusItem.containsMouse
         }
@@ -305,6 +311,20 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
         Item { // Messages
             Layout.fillWidth: true
             Layout.fillHeight: true
+            layer.enabled: true
+            layer.effect: OpacityMask {
+                maskSource: Rectangle {
+                    width: swipeView.width
+                    height: swipeView.height
+                    radius: Appearance.rounding.small
+                }
+            }
+
+            ScrollEdgeFade {
+                target: messageListView
+                vertical: true
+            }
+
             StyledListView { // Message list
                 id: messageListView
                 anchors.fill: parent
@@ -315,15 +335,11 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                 mouseScrollFactor: Config.options.interactions.scrolling.mouseScrollFactor * 1.4
 
                 property int lastResponseLength: 0
-
-                clip: true
-                layer.enabled: true
-                layer.effect: OpacityMask {
-                    maskSource: Rectangle {
-                        width: swipeView.width
-                        height: swipeView.height
-                        radius: Appearance.rounding.small
-                    }
+                onContentHeightChanged: {
+                    if (atYEnd) Qt.callLater(positionViewAtEnd);
+                }
+                onCountChanged: { // Auto-scroll when new messages are added
+                    if (atYEnd) Qt.callLater(positionViewAtEnd);
                 }
 
                 add: null // Prevent function calls from being janky
@@ -358,10 +374,9 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                     anchors.centerIn: parent
                     spacing: 5
 
-                    MaterialSymbol {
+                    CookieWrappedMaterialSymbol {
                         Layout.alignment: Qt.AlignHCenter
                         iconSize: 60
-                        color: Appearance.m3colors.m3outline
                         text: "neurology"
                     }
                     StyledText {
@@ -631,11 +646,22 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                                 root.handleInput(inputText)
                                 event.accepted = true
                             }
-                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) { // Intercept Ctrl+V to handle image pasting
+                        } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V) { // Intercept Ctrl+V to handle image/file pasting
+                            if (event.modifiers & Qt.ShiftModifier) { // Let Shift+Ctrl+V = plain paste
+                                messageInputField.text += Quickshell.clipboardText
+                                event.accepted = true;
+                                return;
+                            }
                             // Try image paste first
                             const currentClipboardEntry = Cliphist.entries[0]
+                            const cleanCliphistEntry = StringUtils.cleanCliphistEntry(currentClipboardEntry)
                             if (/^\d+\t\[\[.*binary data.*\d+x\d+.*\]\]$/.test(currentClipboardEntry)) { // First entry = currently copied entry = image?
                                 decodeImageAndAttachProc.handleEntry(currentClipboardEntry)
+                                event.accepted = true;
+                                return;
+                            } else if (cleanCliphistEntry.startsWith("file://")) { // First entry = currently copied entry = image?
+                                const fileName = decodeURIComponent(cleanCliphistEntry)
+                                Ai.attachFile(fileName);
                                 event.accepted = true;
                                 return;
                             }
@@ -730,8 +756,8 @@ Inline w/ backslash and round brackets \\(e^{i\\pi} + 1 = 0\\)
                         delegate: ApiCommandButton {
                             property string commandRepresentation: `${root.commandPrefix}${modelData.name}`
                             buttonText: commandRepresentation
-                            onClicked: {
-                                if(modelData.sendDirectly) {
+                            downAction: () => {
+                                if (modelData.sendDirectly) {
                                     root.handleInput(commandRepresentation)
                                 } else {
                                     messageInputField.text = commandRepresentation + (modelData.dontAddSpace ? "" : " ")
