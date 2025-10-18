@@ -13,3 +13,11 @@ v sudo systemctl enable bluetooth --now
 v gsettings set org.gnome.desktop.interface font-name 'Rubik 11'
 v gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 v kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Darkly
+
+# Setup SDDM and theme
+#v sudo mkdir -p /usr/share/sddm/themes/
+#v sudo cp -r "${base}/Extras/lunarSDDM" /usr/share/sddm/themes/
+#v sudo mkdir -p /etc/sddm.conf.d
+#v echo "[Theme]
+#Current=lunarSDDM" | sudo tee /etc/sddm.conf.d/theme.conf
+#v sudo systemctl enable sddm.service

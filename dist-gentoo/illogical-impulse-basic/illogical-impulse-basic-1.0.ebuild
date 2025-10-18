@@ -25,4 +25,5 @@ RDEPEND="
 	dev-python/jq
 	dev-build/meson
 	x11-misc/xdg-user-dirs
+	x11-misc/sddm
 "

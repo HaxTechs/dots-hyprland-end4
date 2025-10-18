@@ -5,6 +5,8 @@ pkgdesc='Illogical Impulse Basic Dependencies'
 arch=(any)
 license=(None)
 depends=(
+	nautilus
+	sddm
 	axel
 	bc
 	coreutils
