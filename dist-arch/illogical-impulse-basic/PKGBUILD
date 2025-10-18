@@ -5,6 +5,7 @@ pkgdesc='Illogical Impulse Basic Dependencies'
 arch=(any)
 license=(None)
 depends=(
+	rofi
 	nautilus
 	sddm
 	axel

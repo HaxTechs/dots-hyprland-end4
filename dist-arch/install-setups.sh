@@ -20,4 +20,4 @@ v kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Darkly
 #v sudo mkdir -p /etc/sddm.conf.d
 #v echo "[Theme]
 #Current=lunarSDDM" | sudo tee /etc/sddm.conf.d/theme.conf
-#v sudo systemctl enable sddm.service
+v sudo systemctl enable sddm
