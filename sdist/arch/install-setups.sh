@@ -15,9 +15,7 @@ v gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 v kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle Darkly
 
 # Setup SDDM and theme
-#v sudo mkdir -p /usr/share/sddm/themes/
-#v sudo cp -r "${base}/Extras/lunarSDDM" /usr/share/sddm/themes/
-#v sudo mkdir -p /etc/sddm.conf.d
-#v echo "[Theme]
-#Current=lunarSDDM" | sudo tee /etc/sddm.conf.d/theme.conf
+v git clone -b main --depth=1 https://github.com/uiriansan/SilentSDDM
+v ./SilentSDDM/install.sh
+v rm -rf SilentSDDM
 v sudo systemctl enable sddm
